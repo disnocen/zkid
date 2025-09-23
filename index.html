@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body > h1:nth-of-type(1) {
+      cursor: pointer
+    }
+
+    body {
+      --title-bar-height: 42px;
+      padding-top: var(--title-bar-height);
+    }
+
+    #bar {
+      background: rgba(55, 60, 72, 0.6);
+      backdrop-filter: blur(64px);
+      -webkit-app-region: drag;
+      height: var(--title-bar-height);
+      padding: 0;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      color: #FFF;
+      white-space: nowrap;
+      box-sizing: border-box;
+      position: fixed;
+      z-index: 2;
+      width: 100%;
+      left: 0;
+      top: 0;
+    }
+
+    pear-ctrl[data-platform=darwin] {
+      margin-top: 18px;
+      margin-left: 12px;
+    }
+
+    body {
+      color: white;
+    }
+  </style>
+  <script type='module' src='./app.js'></script>
+</head>
+<body>
+  <div id="bar"><pear-ctrl></pear-ctrl></div>
+  <h1>Hypercore Crypto Key Generator</h1>
+
+  <button id="generateBtn" style="margin: 20px 0; padding: 10px 20px; font-size: 16px;">Generate Key Pair</button>
+
+  <table id="keyTable" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+    <thead>
+      <tr style="background-color: #f0f0f0;">
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Private Key</th>
+        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Public Key</th>
+      </tr>
+    </thead>
+    <tbody id="keyTableBody">
+    </tbody>
+  </table>
+</body>
+</html>
