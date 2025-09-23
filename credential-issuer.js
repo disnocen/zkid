@@ -26,10 +26,19 @@ class CredentialIssuer {
   }
 
   // Generate anonymous ID from user's real identity data
+  // Private key = hash of real identity, Public key = anonymous ID
   generateAnonymousId(name, surname, birthdate, location, ssn) {
     const identityString = `${name}:${surname}:${birthdate}:${location}:${ssn}`
-    const hash = crypto.hash(Buffer.from(identityString))
-    return hash.toString('hex')
+    const identityHash = crypto.hash(Buffer.from(identityString))
+
+    // Use the hash as the private key to generate a deterministic key pair
+    const keyPair = crypto.keyPair(identityHash)
+
+    return {
+      anonId: keyPair.publicKey.toString('hex'), // This is the anonymous ID (public key)
+      privateKey: identityHash.toString('hex'),   // Private key derived from real identity
+      keyPair: keyPair
+    }
   }
 
   // Issue a credential for a user with their verified attributes
@@ -42,8 +51,8 @@ class CredentialIssuer {
 
     const { name, surname, age, birthdate, location, ssn } = userInfo
 
-    // Generate anonymous ID from real identity
-    const anonId = this.generateAnonymousId(name, surname, birthdate, location, ssn)
+    // Generate anonymous ID (public key) from real identity hash (private key)
+    const identityKeys = this.generateAnonymousId(name, surname, birthdate, location, ssn)
 
     // Create additional hashes for privacy
     const nameHash = crypto.hash(Buffer.from(`${name}:${surname}`)).toString('hex')
@@ -53,7 +62,7 @@ class CredentialIssuer {
 
     // Encode all attributes as messages for BBS signing
     const attributes = [
-      new TextEncoder().encode(`anonId:${anonId}`),
+      new TextEncoder().encode(`anonId:${identityKeys.anonId}`),
       new TextEncoder().encode(`age:${age}`),
       new TextEncoder().encode(`nameHash:${nameHash}`),
       new TextEncoder().encode(`locationHash:${locationHash}`),
@@ -79,13 +88,14 @@ class CredentialIssuer {
       issuerPublicKey: this.keyPair.publicKey,
       issuerName: this.issuerName,
       issuedAt: Date.now(),
-      anonId: anonId
+      anonId: identityKeys.anonId,
+      identityKeyPair: identityKeys.keyPair // Include the key pair for Sara's use
     }
 
     // Store issued credential
-    this.issuedCredentials.set(anonId, credential)
+    this.issuedCredentials.set(identityKeys.anonId, credential)
 
-    console.log(`${this.issuerName}: Credential issued successfully for anonymous ID: ${anonId.substring(0, 8)}...`)
+    console.log(`${this.issuerName}: Credential issued successfully for anonymous ID: ${identityKeys.anonId.substring(0, 8)}...`)
 
     return credential
   }
