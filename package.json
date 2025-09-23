@@ -21,6 +21,7 @@
     "pear-interface": "^1.0.0"
   },
   "dependencies": {
+    "@digitalbazaar/bbs-signatures": "^3.0.0",
     "hypercore-crypto": "^3.6.1"
   }
 }

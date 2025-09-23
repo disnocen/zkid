@@ -36,25 +36,130 @@
 
     body {
       color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+    }
+
+    .step-section {
+      background: rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn {
+      background: #007AFF;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+
+    .btn:hover {
+      background: #0056CC;
+    }
+
+    .btn:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+
+    .input-field {
+      padding: 10px;
+      border: 1px solid #666;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    .event-info {
+      background: rgba(0, 122, 255, 0.1);
+      padding: 15px;
+      border-radius: 6px;
+      margin: 10px 0;
+      border: 1px solid rgba(0, 122, 255, 0.3);
+    }
+
+    .ticket {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      border-radius: 12px;
+      border: 2px solid #007AFF;
+      margin: 10px 0;
+    }
+
+    h2 {
+      color: #007AFF;
+      margin-top: 0;
+    }
+
+    h3 {
+      margin-top: 0;
     }
   </style>
   <script type='module' src='./app.js'></script>
 </head>
 <body>
   <div id="bar"><pear-ctrl></pear-ctrl></div>
-  <h1>Hypercore Crypto Key Generator</h1>
+  <h1>🎫 Anonymous Event Ticketing</h1>
 
-  <button id="generateBtn" style="margin: 20px 0; padding: 10px 20px; font-size: 16px;">Generate Key Pair</button>
+  <div id="step1" class="step-section">
+    <h2>Step 1: Create Anonymous ID</h2>
+    <button id="createIdBtn" class="btn">Create Anonymous ID</button>
+    <div id="idDisplay" style="display: none; margin-top: 10px;">
+      <p><strong>Anonymous ID:</strong> <span id="anonymousId"></span></p>
+    </div>
+  </div>
 
-  <table id="keyTable" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-    <thead>
-      <tr style="background-color: #f0f0f0;">
-        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Private Key</th>
-        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Public Key</th>
-      </tr>
-    </thead>
-    <tbody id="keyTableBody">
-    </tbody>
-  </table>
+  <div id="step2" class="step-section" style="display: none;">
+    <h2>Step 2: Age Verification</h2>
+    <input type="number" id="ageInput" placeholder="Enter your age" min="18" max="100" class="input-field">
+    <button id="verifyAgeBtn" class="btn">Verify Age (18+)</button>
+    <div id="ageVerification" style="display: none; margin-top: 10px;">
+      <p style="color: #4CAF50;"><strong>✓ Age verified: 18+</strong></p>
+    </div>
+  </div>
+
+  <div id="step3" class="step-section" style="display: none;">
+    <h2>Step 3: Purchase Ticket</h2>
+    <div class="event-info">
+      <h3>🎵 Electronic Music Festival 2024</h3>
+      <p><strong>Date:</strong> December 15, 2024</p>
+      <p><strong>Location:</strong> Downtown Arena</p>
+      <p><strong>Age Requirement:</strong> 18+</p>
+      <p><strong>Price:</strong> $150</p>
+    </div>
+    <button id="purchaseBtn" class="btn">Purchase with Lightning ⚡ ($150 BTC)</button>
+    <div id="purchaseStatus" style="display: none; margin-top: 10px;">
+      <p style="color: #4CAF50;"><strong>✓ Payment completed via Lightning Network</strong></p>
+    </div>
+  </div>
+
+  <div id="step4" class="step-section" style="display: none;">
+    <h2>Step 4: Your Digital Ticket</h2>
+    <div id="ticketDisplay">
+      <div class="ticket">
+        <h3>🎵 Electronic Music Festival 2024</h3>
+        <p><strong>Ticket ID:</strong> <span id="ticketId"></span></p>
+        <p><strong>Date:</strong> December 15, 2024</p>
+        <p><strong>Age Verified:</strong> 18+ ✓</p>
+        <p><strong>Anonymous ID:</strong> <span id="ticketAnonId"></span></p>
+        <div id="qrCode" style="margin-top: 15px;">
+          <p><strong>QR Code for venue entry:</strong></p>
+          <div style="background: white; padding: 20px; display: inline-block; border-radius: 8px;">
+            <div style="width: 100px; height: 100px; background: #000; color: white; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 10px; word-break: break-all;" id="qrDisplay">
+              QR_CODE_DATA
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
