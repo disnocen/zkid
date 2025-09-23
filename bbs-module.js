@@ -145,6 +145,113 @@ class BBSModule {
     }
   }
 
+  // Mock ZK Age Predicate - proves age >= minAge without revealing exact age
+  async proveAgePredicate(credential, minAge) {
+    console.log('BBS Module: Creating mock ZK age predicate proof...')
+
+    try {
+      // Extract age from credential attributes
+      let userAge = null
+      for (const attr of credential.attributes) {
+        const attrStr = new TextDecoder().decode(attr)
+        if (attrStr.startsWith('age:')) {
+          userAge = parseInt(attrStr.split(':')[1])
+          break
+        }
+      }
+
+      if (userAge === null) {
+        throw new Error('Age attribute not found in credential')
+      }
+
+      if (userAge < minAge) {
+        throw new Error(`Age ${userAge} does not meet minimum requirement of ${minAge}`)
+      }
+
+      console.log(`BBS Module: User age ${userAge} meets requirement of ${minAge}+`)
+
+      // Create selective disclosure proof that reveals only anonId (index 0)
+      // Age (index 1) is NOT revealed but the proof validates the credential
+      const zkProof = await BBS.deriveProof({
+        publicKey: credential.issuerPublicKey,
+        signature: credential.signature,
+        header: new Uint8Array(0),
+        messages: credential.attributes,
+        presentationHeader: new Uint8Array(0),
+        disclosedMessageIndexes: [0], // Only reveal anonId
+        ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
+      })
+
+      // Mock predicate result - in real implementation this would be a bulletproof
+      const predicateProof = {
+        type: 'age_gte',
+        minAge: minAge,
+        satisfied: true,
+        // This would be a real zero-knowledge proof in production
+        mockProof: `age_gte_${minAge}_proof_${Math.random().toString(36).substr(2, 8)}`
+      }
+
+      console.log('BBS Module: Mock ZK age predicate proof created successfully')
+
+      return {
+        bbsProof: zkProof,
+        predicateProof: predicateProof,
+        issuerPublicKey: credential.issuerPublicKey,
+        anonId: credential.anonId,
+        meetsRequirement: true
+      }
+
+    } catch (error) {
+      console.error('BBS Module: Error creating ZK age predicate proof:', error)
+      throw error
+    }
+  }
+
+  // Verify a ZK age predicate proof without learning the exact age
+  async verifyAgePredicate(proofData, minAge) {
+    console.log('BBS Module: Verifying mock ZK age predicate proof...')
+
+    try {
+      // Verify the BBS proof first
+      const bbsValid = await BBS.verifyProof({
+        publicKey: proofData.issuerPublicKey,
+        proof: proofData.bbsProof,
+        header: new Uint8Array(0),
+        presentationHeader: new Uint8Array(0),
+        disclosedMessages: proofData.bbsProof.disclosedMessages || [],
+        disclosedMessageIndexes: proofData.bbsProof.disclosedMessageIndexes || [],
+        ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
+      })
+
+      if (!bbsValid) {
+        return { valid: false, reason: 'Invalid BBS signature proof' }
+      }
+
+      // Mock predicate verification - in real implementation this would verify bulletproof
+      const predicateValid = proofData.predicateProof.satisfied &&
+                           proofData.predicateProof.minAge === minAge &&
+                           proofData.predicateProof.type === 'age_gte'
+
+      if (!predicateValid) {
+        return { valid: false, reason: 'Age predicate not satisfied' }
+      }
+
+      console.log('BBS Module: ZK age predicate verification successful')
+
+      return {
+        valid: true,
+        anonId: proofData.anonId,
+        ageRequirementMet: true,
+        // Exact age is NOT revealed - this is the key privacy property
+        exactAgeHidden: true
+      }
+
+    } catch (error) {
+      console.error('BBS Module: ZK age predicate verification failed:', error)
+      return { valid: false, reason: error.message }
+    }
+  }
+
   getPublicKey() {
     return this.keyPair?.publicKey
   }

@@ -102,32 +102,83 @@
     h3 {
       margin-top: 0;
     }
+
+    .user-info {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .input-row .input-field {
+      flex: 1;
+      margin-right: 0;
+    }
   </style>
   <script type='module' src='./app.js'></script>
 </head>
 <body>
   <div id="bar"><pear-ctrl></pear-ctrl></div>
   <h1>🎫 Anonymous Event Ticketing</h1>
+  <p style="margin-bottom: 30px; opacity: 0.8;">Three-Actor Privacy Demo: Issuer → Sara → Ticket Manager</p>
 
-  <div id="step1" class="step-section">
-    <h2>Step 1: Create Anonymous ID</h2>
-    <button id="createIdBtn" class="btn">Create Anonymous ID</button>
-    <div id="idDisplay" style="display: none; margin-top: 10px;">
-      <p><strong>Anonymous ID:</strong> <span id="anonymousId"></span></p>
+  <div id="step0" class="step-section">
+    <h2>Step 0: Credential Issuance 🏛️</h2>
+    <p><strong>Government Identity Authority</strong> issues verified credentials</p>
+    <div class="user-info">
+      <div class="input-row">
+        <input type="text" id="nameInput" placeholder="First Name" value="Sara" class="input-field">
+        <input type="text" id="surnameInput" placeholder="Last Name" value="Johnson" class="input-field">
+      </div>
+      <div class="input-row">
+        <input type="number" id="realAgeInput" placeholder="Real Age" value="22" min="16" max="80" class="input-field">
+        <input type="text" id="birthdateInput" placeholder="Birthdate" value="2001-06-15" class="input-field">
+      </div>
+      <div class="input-row">
+        <input type="text" id="locationInput" placeholder="Birth Location" value="San Francisco, CA" class="input-field">
+        <input type="text" id="ssnInput" placeholder="SSN" value="123-45-6789" class="input-field">
+      </div>
+    </div>
+    <button id="issueCredentialBtn" class="btn">🏛️ Issue Identity Credential</button>
+    <div id="credentialIssued" style="display: none; margin-top: 10px;">
+      <p style="color: #4CAF50;"><strong>✓ Credential issued by Government Identity Authority</strong></p>
+      <p><strong>Anonymous ID:</strong> <span id="issuedAnonId"></span></p>
     </div>
   </div>
 
+  <div id="step1" class="step-section" style="display: none;">
+    <h2>Step 1: Receive Credential 👤</h2>
+    <p><strong>Sara</strong> receives her verified credential</p>
+    <div id="credentialDisplay">
+      <p>✓ Identity verified by: <span id="issuerName"></span></p>
+      <p>✓ Anonymous ID: <span id="saraAnonId"></span></p>
+      <p>✓ Attributes signed with BBS signatures</p>
+      <p style="opacity: 0.7; font-size: 14px;">Real age and identity data are cryptographically signed but hidden</p>
+    </div>
+    <button id="proceedToTicketBtn" class="btn">Continue to Ticket Purchase</button>
+  </div>
+
   <div id="step2" class="step-section" style="display: none;">
-    <h2>Step 2: Age Verification</h2>
-    <input type="number" id="ageInput" placeholder="Enter your age" min="18" max="100" class="input-field">
-    <button id="verifyAgeBtn" class="btn">Verify Age (18+)</button>
-    <div id="ageVerification" style="display: none; margin-top: 10px;">
-      <p style="color: #4CAF50;"><strong>✓ Age verified: 18+</strong></p>
+    <h2>Step 2: Age Verification 🔐</h2>
+    <p><strong>Sara</strong> proves she's 18+ without revealing her exact age</p>
+    <button id="proveAgeBtn" class="btn">🔐 Prove Age ≥18 (Zero-Knowledge)</button>
+    <div id="ageProofGenerated" style="display: none; margin-top: 10px;">
+      <p style="color: #4CAF50;"><strong>✓ Zero-knowledge proof generated</strong></p>
+      <p>✓ Proves: Age ≥ 18</p>
+      <p>✓ Reveals: Anonymous ID only</p>
+      <p>❌ Hidden: Exact age (22), name, location, SSN</p>
     </div>
   </div>
 
   <div id="step3" class="step-section" style="display: none;">
-    <h2>Step 3: Purchase Ticket</h2>
+    <h2>Step 3: Ticket Purchase 🎟️</h2>
+    <p><strong>Ticket Manager</strong> verifies age proof and sells ticket</p>
     <div class="event-info">
       <h3>🎵 Electronic Music Festival 2024</h3>
       <p><strong>Date:</strong> December 15, 2024</p>
@@ -135,29 +186,34 @@
       <p><strong>Age Requirement:</strong> 18+</p>
       <p><strong>Price:</strong> $150</p>
     </div>
-    <button id="purchaseBtn" class="btn">Purchase with Lightning ⚡ ($150 BTC)</button>
+    <button id="purchaseBtn" class="btn">🎟️ Purchase with Lightning ⚡ ($150 BTC)</button>
     <div id="purchaseStatus" style="display: none; margin-top: 10px;">
+      <p style="color: #4CAF50;"><strong>✓ Age requirement verified by Ticket Manager</strong></p>
       <p style="color: #4CAF50;"><strong>✓ Payment completed via Lightning Network</strong></p>
+      <p style="opacity: 0.7;">Ticket Manager knows: Age ≥18 ✓, Anonymous ID only</p>
     </div>
   </div>
 
   <div id="step4" class="step-section" style="display: none;">
-    <h2>Step 4: Your Digital Ticket</h2>
+    <h2>Step 4: Your Private Ticket 🎫</h2>
     <div id="ticketDisplay">
       <div class="ticket">
         <h3>🎵 Electronic Music Festival 2024</h3>
         <p><strong>Ticket ID:</strong> <span id="ticketId"></span></p>
         <p><strong>Date:</strong> December 15, 2024</p>
-        <p><strong>Age Verified:</strong> 18+ ✓</p>
+        <p><strong>Age Verified:</strong> 18+ ✓ (exact age hidden)</p>
         <p><strong>Anonymous ID:</strong> <span id="ticketAnonId"></span></p>
         <div id="qrCode" style="margin-top: 15px;">
           <p><strong>QR Code for venue entry:</strong></p>
           <div style="background: white; padding: 20px; display: inline-block; border-radius: 8px;">
             <div style="width: 100px; height: 100px; background: #000; color: white; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 10px; word-break: break-all;" id="qrDisplay">
-              QR_CODE_DATA
+              ZK_PROOF_DATA
             </div>
           </div>
         </div>
+        <p style="margin-top: 10px; font-size: 14px; opacity: 0.7;">
+          🔒 <strong>Privacy Achieved:</strong> Your exact age (22) was never revealed to the ticket manager!
+        </p>
       </div>
     </div>
   </div>
