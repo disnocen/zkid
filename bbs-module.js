@@ -212,20 +212,35 @@ class BBSModule {
     console.log('BBS Module: Verifying mock ZK age predicate proof...')
 
     try {
-      // Verify the BBS proof first
+      // For BBS proof verification, we need to know which messages were disclosed
+      // In our case, we disclosed index 0 (anonId) during proof generation
+      const disclosedIndexes = [0] // We revealed only the anonId
+
+      // Extract the disclosed message (anonId) from the original credential
+      // This is a simplification - in a real implementation, this would come from the proof
+      const disclosedMessages = [
+        new TextEncoder().encode(`anonId:${proofData.anonId}`)
+      ]
+
+      console.log('BBS Module: Verifying with disclosed anonId:', proofData.anonId.substring(0, 8) + '...')
+
+      // Verify the BBS proof
       const bbsValid = await BBS.verifyProof({
         publicKey: proofData.issuerPublicKey,
         proof: proofData.bbsProof,
         header: new Uint8Array(0),
         presentationHeader: new Uint8Array(0),
-        disclosedMessages: proofData.bbsProof.disclosedMessages || [],
-        disclosedMessageIndexes: proofData.bbsProof.disclosedMessageIndexes || [],
+        disclosedMessages: disclosedMessages,
+        disclosedMessageIndexes: disclosedIndexes,
         ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
       })
 
       if (!bbsValid) {
+        console.error('BBS Module: BBS proof verification failed')
         return { valid: false, reason: 'Invalid BBS signature proof' }
       }
+
+      console.log('BBS Module: BBS proof verification successful')
 
       // Mock predicate verification - in real implementation this would verify bulletproof
       const predicateValid = proofData.predicateProof.satisfied &&
