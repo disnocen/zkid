@@ -14,10 +14,12 @@
   "license": "Apache-2.0",
   "scripts": {
     "dev": "pear run -d .",
-    "test": "brittle test/*.test.js"
+    "test": "brittle test/*.test.js",
+    "build:bbs": "esbuild node_modules/@digitalbazaar/bbs-signatures/lib/index.js --bundle --format=esm --outfile=bundled-bbs.js --platform=browser"
   },
   "devDependencies": {
     "brittle": "^3.0.0",
+    "esbuild": "^0.25.10",
     "pear-interface": "^1.0.0"
   },
   "dependencies": {

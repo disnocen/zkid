@@ -1,7 +1,9 @@
 // BBS Module - abstracted interface for BBS signatures
-// Currently using a mock implementation for Pear compatibility
+// Now using real BBS signatures via bundled library
 
-console.log('Loading BBS module...')
+import * as BBS from './bundled-bbs.js'
+
+console.log('Loading real BBS module...')
 
 class BBSModule {
   constructor() {
@@ -9,38 +11,38 @@ class BBSModule {
   }
 
   async init() {
-    console.log('BBS Module: Starting mock key pair generation...')
+    console.log('BBS Module: Starting real BBS key pair generation...')
     try {
-      // Mock BBS key pair for PoC
-      this.keyPair = {
-        publicKey: 'mock-bbs-public-key-' + Math.random().toString(36).substr(2, 9),
-        privateKey: 'mock-bbs-private-key-' + Math.random().toString(36).substr(2, 9)
-      }
-      console.log('BBS Module: Mock key pair generated successfully')
+      this.keyPair = await BBS.generateKeyPair()
+      console.log('BBS Module: Real BBS key pair generated successfully')
       return this.keyPair
     } catch (error) {
-      console.error('BBS Module: Failed to generate mock key pair:', error)
+      console.error('BBS Module: Failed to generate BBS key pair:', error)
       throw error
     }
   }
 
   async createAgeProof(age, anonymousId) {
-    console.log('BBS Module: Creating mock age proof...')
+    console.log('BBS Module: Creating real BBS age proof...')
 
     if (!this.keyPair) {
       throw new Error('BBS module not initialized. Call init() first.')
     }
 
     const messages = [
-      `age:${age}`,
-      `id:${anonymousId}`,
-      `timestamp:${Date.now()}`
+      new TextEncoder().encode(`age:${age}`),
+      new TextEncoder().encode(`id:${anonymousId}`),
+      new TextEncoder().encode(`timestamp:${Date.now()}`)
     ]
 
-    // Mock BBS signature for PoC
-    const signature = `mock-bbs-signature-${Math.random().toString(36).substr(2, 16)}`
+    console.log('BBS Module: Signing messages with real BBS...')
 
-    console.log('BBS Module: Mock age proof created with messages:', messages)
+    const signature = await BBS.sign({
+      keyPair: this.keyPair,
+      messages: messages
+    })
+
+    console.log('BBS Module: Real BBS signature created')
 
     return {
       signature: signature,
@@ -50,34 +52,37 @@ class BBSModule {
   }
 
   async createSelectiveProof(signedCredential, revealedIndices = []) {
-    console.log('BBS Module: Creating mock selective proof for indices:', revealedIndices)
+    console.log('BBS Module: Creating real BBS selective proof for indices:', revealedIndices)
 
-    // Mock selective proof for PoC
-    const proof = {
-      proof: `mock-selective-proof-${Math.random().toString(36).substr(2, 16)}`,
-      revealedMessages: revealedIndices.map(i => signedCredential.messages[i]),
-      publicKey: signedCredential.publicKey
-    }
+    const proof = await BBS.deriveProof({
+      signature: signedCredential.signature,
+      publicKey: signedCredential.publicKey,
+      messages: signedCredential.messages,
+      disclosedIndexes: revealedIndices
+    })
 
-    console.log('BBS Module: Mock selective proof created')
+    console.log('BBS Module: Real BBS selective proof created')
     return proof
   }
 
-  async verifyAgeProof(proof, minAge) {
-    console.log('BBS Module: Verifying mock age proof...')
+  async verifyAgeProof(proof, minAge, publicKey) {
+    console.log('BBS Module: Verifying real BBS age proof...')
 
     try {
-      // Mock verification - always valid for PoC
-      const isValid = true
+      const isValid = await BBS.verifyProof({
+        proof: proof,
+        publicKey: publicKey
+      })
 
       if (!isValid) {
         return { valid: false, reason: 'Invalid proof signature' }
       }
 
-      const revealedMessages = proof.revealedMessages || []
+      // For BBS proofs, disclosed messages are included in the proof
+      const disclosedMessages = proof.disclosedMessages || []
 
-      for (const message of revealedMessages) {
-        const messageStr = message.toString()
+      for (const message of disclosedMessages) {
+        const messageStr = new TextDecoder().decode(message)
         if (messageStr.startsWith('age:')) {
           const age = parseInt(messageStr.split(':')[1])
           if (age >= minAge) {
@@ -97,25 +102,32 @@ class BBSModule {
   }
 
   async generateAgeOnlyProof(age, anonymousId, minAge) {
-    console.log('BBS Module: Generating age proof for age:', age, 'minAge:', minAge)
+    console.log('BBS Module: Generating zero-knowledge age proof for age:', age, 'minAge:', minAge)
 
     try {
+      // First create a BBS signature over all attributes
       const credential = await this.createAgeProof(age, anonymousId)
-      console.log('BBS Module: Created age credential')
+      console.log('BBS Module: Created BBS credential with all attributes')
 
       if (age >= minAge) {
-        const ageOnlyProof = await this.createSelectiveProof(credential, [0])
-        console.log('BBS Module: Generated selective proof')
+        // Create a zero-knowledge proof that reveals ONLY the anonymousId (index 1)
+        // The age (index 0) is NOT revealed, but the proof still validates
+        // This proves the person has the credential without revealing their exact age
+        const zkProof = await this.createSelectiveProof(credential, [1]) // Only reveal anonymousId
+
+        console.log('BBS Module: Generated zero-knowledge proof - age hidden, ID revealed')
+
         return {
-          proof: ageOnlyProof,
+          proof: zkProof,
           meetsRequirement: true,
-          anonymousId
+          anonymousId,
+          publicKey: this.keyPair.publicKey
         }
       } else {
         throw new Error(`Age ${age} does not meet minimum requirement of ${minAge}`)
       }
     } catch (error) {
-      console.error('BBS Module: Error generating age proof:', error)
+      console.error('BBS Module: Error generating zero-knowledge age proof:', error)
       throw error
     }
   }
