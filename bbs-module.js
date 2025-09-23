@@ -13,7 +13,9 @@ class BBSModule {
   async init() {
     console.log('BBS Module: Starting real BBS key pair generation...')
     try {
-      this.keyPair = await BBS.generateKeyPair()
+      this.keyPair = await BBS.generateKeyPair({
+        ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
+      })
       console.log('BBS Module: Real BBS key pair generated successfully')
       return this.keyPair
     } catch (error) {
@@ -38,8 +40,11 @@ class BBSModule {
     console.log('BBS Module: Signing messages with real BBS...')
 
     const signature = await BBS.sign({
-      keyPair: this.keyPair,
-      messages: messages
+      secretKey: this.keyPair.secretKey,
+      publicKey: this.keyPair.publicKey,
+      header: new Uint8Array(0), // Empty header
+      messages: messages,
+      ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
     })
 
     console.log('BBS Module: Real BBS signature created')
@@ -55,10 +60,13 @@ class BBSModule {
     console.log('BBS Module: Creating real BBS selective proof for indices:', revealedIndices)
 
     const proof = await BBS.deriveProof({
-      signature: signedCredential.signature,
       publicKey: signedCredential.publicKey,
+      signature: signedCredential.signature,
+      header: new Uint8Array(0), // Empty header
       messages: signedCredential.messages,
-      disclosedIndexes: revealedIndices
+      presentationHeader: new Uint8Array(0), // Empty presentation header
+      disclosedMessageIndexes: revealedIndices,
+      ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
     })
 
     console.log('BBS Module: Real BBS selective proof created')
@@ -70,8 +78,13 @@ class BBSModule {
 
     try {
       const isValid = await BBS.verifyProof({
-        proof: proof,
-        publicKey: publicKey
+        publicKey: publicKey,
+        proof: proof.proof || proof, // Handle both proof object and raw proof
+        header: new Uint8Array(0),
+        presentationHeader: new Uint8Array(0),
+        disclosedMessages: proof.disclosedMessages || [],
+        disclosedMessageIndexes: proof.disclosedMessageIndexes || [],
+        ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
       })
 
       if (!isValid) {
