@@ -9,18 +9,18 @@ document.querySelector('h1').addEventListener('click', (e) => { e.target.innerHT
 let credentialIssuer = null
 let saraCredential = null
 let bbsModule = null
-let ageProof = null
+let creditProof = null
 
 // UI elements
 const issueCredentialBtn = document.getElementById('issueCredentialBtn')
-const proceedToTicketBtn = document.getElementById('proceedToTicketBtn')
-const proveAgeBtn = document.getElementById('proveAgeBtn')
-const purchaseBtn = document.getElementById('purchaseBtn')
+const proceedToLoanBtn = document.getElementById('proceedToLoanBtn')
+const proveCreditBtn = document.getElementById('proveCreditBtn')
+const applyBtn = document.getElementById('applyBtn')
 
 // User input elements
 const nameInput = document.getElementById('nameInput')
 const surnameInput = document.getElementById('surnameInput')
-const realAgeInput = document.getElementById('realAgeInput')
+const creditScoreInput = document.getElementById('creditScoreInput')
 const birthdateInput = document.getElementById('birthdateInput')
 const locationInput = document.getElementById('locationInput')
 const ssnInput = document.getElementById('ssnInput')
@@ -58,7 +58,7 @@ issueCredentialBtn.addEventListener('click', async () => {
     const userInfo = {
       name: nameInput.value,
       surname: surnameInput.value,
-      age: parseInt(realAgeInput.value),
+      creditScore: parseInt(creditScoreInput.value),
       birthdate: birthdateInput.value,
       location: locationInput.value,
       ssn: ssnInput.value
@@ -87,7 +87,7 @@ issueCredentialBtn.addEventListener('click', async () => {
 })
 
 // Step 1: Sara receives her credential
-proceedToTicketBtn.addEventListener('click', async () => {
+proceedToLoanBtn.addEventListener('click', async () => {
   console.log('=== STEP 1: SARA RECEIVES CREDENTIAL ===')
 
   try {
@@ -98,8 +98,8 @@ proceedToTicketBtn.addEventListener('click', async () => {
     document.getElementById('saraAnonId').textContent = saraCredential.anonId.substring(0, 16) + '...'
     document.getElementById('step2').style.display = 'block'
 
-    proceedToTicketBtn.disabled = true
-    proceedToTicketBtn.textContent = '✓ Credential Received'
+    proceedToLoanBtn.disabled = true
+    proceedToLoanBtn.textContent = '✓ Credential Received'
 
   } catch (error) {
     console.error('Error setting up Sara\'s credential:', error)
@@ -107,107 +107,107 @@ proceedToTicketBtn.addEventListener('click', async () => {
   }
 })
 
-// Step 2: Sara creates zero-knowledge age proof
-proveAgeBtn.addEventListener('click', async () => {
-  console.log('=== STEP 2: SARA CREATES ZERO-KNOWLEDGE AGE PROOF ===')
+// Step 2: Sara creates zero-knowledge credit proof
+proveCreditBtn.addEventListener('click', async () => {
+  console.log('=== STEP 2: SARA CREATES ZERO-KNOWLEDGE CREDIT PROOF ===')
 
   try {
-    proveAgeBtn.disabled = true
-    proveAgeBtn.textContent = 'Generating ZK Proof...'
+    proveCreditBtn.disabled = true
+    proveCreditBtn.textContent = 'Generating ZK Proof...'
 
-    console.log('Sara creating zero-knowledge proof that age ≥ 18...')
+    console.log('Sara creating zero-knowledge proof that credit category ≥ fair...')
 
     // Sara creates ZK proof using her credential
-    ageProof = await bbsModule.proveAgePredicate(saraCredential, 18)
+    creditProof = await bbsModule.proveCreditCategoryPredicate(saraCredential, 'fair')
 
-    console.log('Zero-knowledge age proof generated successfully')
-    console.log('Proof reveals: Anonymous ID only')
-    console.log('Proof hides: Exact age, name, location, SSN')
+    console.log('Zero-knowledge credit proof generated successfully')
+    console.log('Proof reveals: Anonymous ID and credit category only')
+    console.log('Proof hides: Exact credit score, name, location, SSN')
 
     // Update UI
-    document.getElementById('ageProofGenerated').style.display = 'block'
+    document.getElementById('creditProofGenerated').style.display = 'block'
     document.getElementById('step3').style.display = 'block'
 
-    proveAgeBtn.textContent = '✓ ZK Proof Generated'
+    proveCreditBtn.textContent = '✓ ZK Proof Generated'
 
   } catch (error) {
-    console.error('Age proof generation failed:', error)
-    alert('Age proof generation failed: ' + error.message)
-    proveAgeBtn.disabled = false
-    proveAgeBtn.textContent = '🔐 Prove Age ≥18 (Zero-Knowledge)'
+    console.error('Credit proof generation failed:', error)
+    alert('Credit proof generation failed: ' + error.message)
+    proveCreditBtn.disabled = false
+    proveCreditBtn.textContent = '🔐 Prove Credit ≥Fair (Zero-Knowledge)'
   }
 })
 
-// Step 3: Ticket Manager verifies proof and sells ticket
-purchaseBtn.addEventListener('click', async () => {
-  console.log('=== STEP 3: TICKET MANAGER VERIFIES AND SELLS TICKET ===')
+// Step 3: Car Lender verifies proof and approves financing
+applyBtn.addEventListener('click', async () => {
+  console.log('=== STEP 3: CAR LENDER VERIFIES AND APPROVES FINANCING ===')
 
-  if (!ageProof) {
-    alert('Please generate age proof first')
+  if (!creditProof) {
+    alert('Please generate credit proof first')
     return
   }
 
   try {
-    purchaseBtn.disabled = true
-    purchaseBtn.textContent = 'Verifying Age Proof...'
+    applyBtn.disabled = true
+    applyBtn.textContent = 'Verifying Credit Proof...'
 
-    console.log('Ticket Manager verifying zero-knowledge age proof...')
+    console.log('Car Lender verifying zero-knowledge credit proof...')
 
-    // Ticket Manager verifies the proof using the issuer's public key
-    const verification = await bbsModule.verifyAgePredicate(ageProof, 18)
+    // Car Lender verifies the proof using the issuer's public key
+    const verification = await bbsModule.verifyCreditCategoryPredicate(creditProof, 'fair')
 
     if (!verification.valid) {
-      throw new Error('Age verification failed: ' + verification.reason)
+      throw new Error('Credit verification failed: ' + verification.reason)
     }
 
-    console.log('Ticket Manager verification successful!')
-    console.log('Ticket Manager knows: Age ≥ 18 ✓, Anonymous ID:', verification.anonId.substring(0, 8) + '...')
-    console.log('Ticket Manager does NOT know: Exact age, real name, location, SSN')
+    console.log('Car Lender verification successful!')
+    console.log('Car Lender knows: Credit Category ≥ Fair ✓, Anonymous ID:', verification.anonId.substring(0, 8) + '...')
+    console.log('Car Lender does NOT know: Exact credit score, real name, location, SSN')
 
-    purchaseBtn.textContent = 'Processing Payment...'
+    applyBtn.textContent = 'Processing Application...'
 
-    // Simulate Lightning payment
+    // Simulate loan processing
     setTimeout(() => {
-      console.log('Lightning payment completed')
+      console.log('Car loan application processed')
 
-      document.getElementById('purchaseStatus').style.display = 'block'
+      document.getElementById('approvalStatus').style.display = 'block'
       document.getElementById('step4').style.display = 'block'
 
-      // Generate ticket
-      const ticketId = crypto.randomBytes(8).toString('hex').toUpperCase()
+      // Generate loan approval
+      const loanId = crypto.randomBytes(8).toString('hex').toUpperCase()
       const shortAnonId = saraCredential.anonId.substring(0, 8) + '...'
 
-      document.getElementById('ticketId').textContent = ticketId
-      document.getElementById('ticketAnonId').textContent = shortAnonId
+      document.getElementById('loanId').textContent = loanId
+      document.getElementById('loanAnonId').textContent = shortAnonId
 
-      // QR code contains the ZK proof reference, not raw data
+      // QR code contains the ZK proof reference for the dealership
       const qrData = {
-        ticketId: ticketId,
-        proofReference: ageProof.predicateProof.mockProof.substring(0, 20) + '...',
+        loanId: loanId,
+        proofReference: creditProof.predicateProof.mockProof.substring(0, 20) + '...',
         anonId: verification.anonId.substring(0, 16) + '...',
-        event: 'Electronic Music Festival 2024',
-        verified: 'age≥18',
+        loanAmount: '$35,000',
+        verified: 'credit≥fair',
         timestamp: Date.now()
       }
 
       const qrString = JSON.stringify(qrData)
-      console.log('Ticket QR data:', qrString)
+      console.log('Loan approval QR data:', qrString)
       document.getElementById('qrDisplay').textContent = qrString.substring(0, 50) + '...'
 
-      purchaseBtn.textContent = '✓ Ticket Purchased'
+      applyBtn.textContent = '✓ Loan Approved'
 
       console.log('=== PRIVACY ACHIEVED ===')
-      console.log('✓ Sara proved she\'s over 18')
-      console.log('✓ Ticket Manager verified the requirement')
-      console.log('❌ Sara\'s exact age (22) was NEVER revealed!')
+      console.log('✓ Sara proved her credit is fair or better')
+      console.log('✓ Car Lender verified the requirement')
+      console.log('❌ Sara\'s exact credit score was NEVER revealed!')
       console.log('❌ Sara\'s real name, location, SSN remain private!')
 
     }, 2000)
 
   } catch (error) {
-    console.error('Ticket purchase failed:', error)
-    alert('Ticket purchase failed: ' + error.message)
-    purchaseBtn.disabled = false
-    purchaseBtn.textContent = '🎟️ Purchase with Lightning ⚡ ($150 BTC)'
+    console.error('Loan application failed:', error)
+    alert('Loan application failed: ' + error.message)
+    applyBtn.disabled = false
+    applyBtn.textContent = '🚗 Apply for Car Loan ($35,000)'
   }
 })

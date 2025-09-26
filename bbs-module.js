@@ -145,84 +145,105 @@ class BBSModule {
     }
   }
 
-  // Mock ZK Age Predicate - proves age >= minAge without revealing exact age
-  async proveAgePredicate(credential, minAge) {
-    console.log('BBS Module: Creating mock ZK age predicate proof...')
+  // Determine credit score category
+  getCreditScoreCategory(creditScore) {
+    if (creditScore >= 0 && creditScore <= 300) return "poor"
+    if (creditScore >= 301 && creditScore <= 600) return "fair"
+    if (creditScore >= 601 && creditScore <= 800) return "good"
+    if (creditScore >= 801) return "excellent"
+    throw new Error("Invalid credit score")
+  }
+
+  // Mock ZK Credit Score Category Predicate - proves credit category without revealing exact score
+  async proveCreditCategoryPredicate(credential, requiredCategory) {
+    console.log('BBS Module: Creating mock ZK credit category predicate proof...')
 
     try {
-      // Extract age from credential attributes
-      let userAge = null
+      // Extract credit score and category from credential attributes
+      let userCreditScore = null
+      let userCreditCategory = null
+
       for (const attr of credential.attributes) {
         const attrStr = new TextDecoder().decode(attr)
-        if (attrStr.startsWith('age:')) {
-          userAge = parseInt(attrStr.split(':')[1])
-          break
+        if (attrStr.startsWith('creditScore:')) {
+          userCreditScore = parseInt(attrStr.split(':')[1])
+        }
+        if (attrStr.startsWith('creditCategory:')) {
+          userCreditCategory = attrStr.split(':')[1]
         }
       }
 
-      if (userAge === null) {
-        throw new Error('Age attribute not found in credential')
+      if (userCreditScore === null || userCreditCategory === null) {
+        throw new Error('Credit score or category attribute not found in credential')
       }
 
-      if (userAge < minAge) {
-        throw new Error(`Age ${userAge} does not meet minimum requirement of ${minAge}`)
+      // Define category hierarchy for comparison
+      const categoryOrder = { "poor": 1, "fair": 2, "good": 3, "excellent": 4 }
+      const requiredLevel = categoryOrder[requiredCategory]
+      const userLevel = categoryOrder[userCreditCategory]
+
+      if (userLevel < requiredLevel) {
+        throw new Error(`Credit category ${userCreditCategory} does not meet minimum requirement of ${requiredCategory}`)
       }
 
-      console.log(`BBS Module: User age ${userAge} meets requirement of ${minAge}+`)
+      console.log(`BBS Module: User credit category ${userCreditCategory} meets requirement of ${requiredCategory}+`)
 
-      // Create selective disclosure proof that reveals only anonId (index 0)
-      // Age (index 1) is NOT revealed but the proof validates the credential
+      // Create selective disclosure proof that reveals only anonId (index 0) and creditCategory (index 2)
+      // CreditScore (index 1) is NOT revealed but the proof validates the credential
       const zkProof = await BBS.deriveProof({
         publicKey: credential.issuerPublicKey,
         signature: credential.signature,
         header: new Uint8Array(0),
         messages: credential.attributes,
         presentationHeader: new Uint8Array(0),
-        disclosedMessageIndexes: [0], // Only reveal anonId
+        disclosedMessageIndexes: [0, 2], // Reveal anonId and creditCategory only
         ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
       })
 
       // Mock predicate result - in real implementation this would be a bulletproof
       const predicateProof = {
-        type: 'age_gte',
-        minAge: minAge,
+        type: 'credit_category_gte',
+        requiredCategory: requiredCategory,
+        userCategory: userCreditCategory,
         satisfied: true,
         // This would be a real zero-knowledge proof in production
-        mockProof: `age_gte_${minAge}_proof_${Math.random().toString(36).substr(2, 8)}`
+        mockProof: `credit_cat_${requiredCategory}_proof_${Math.random().toString(36).substr(2, 8)}`
       }
 
-      console.log('BBS Module: Mock ZK age predicate proof created successfully')
+      console.log('BBS Module: Mock ZK credit category predicate proof created successfully')
 
       return {
         bbsProof: zkProof,
         predicateProof: predicateProof,
         issuerPublicKey: credential.issuerPublicKey,
         anonId: credential.anonId,
+        userCategory: userCreditCategory,
         meetsRequirement: true
       }
 
     } catch (error) {
-      console.error('BBS Module: Error creating ZK age predicate proof:', error)
+      console.error('BBS Module: Error creating ZK credit category predicate proof:', error)
       throw error
     }
   }
 
-  // Verify a ZK age predicate proof without learning the exact age
-  async verifyAgePredicate(proofData, minAge) {
-    console.log('BBS Module: Verifying mock ZK age predicate proof...')
+  // Verify a ZK credit category predicate proof without learning the exact credit score
+  async verifyCreditCategoryPredicate(proofData, requiredCategory) {
+    console.log('BBS Module: Verifying mock ZK credit category predicate proof...')
 
     try {
       // For BBS proof verification, we need to know which messages were disclosed
-      // In our case, we disclosed index 0 (anonId) during proof generation
-      const disclosedIndexes = [0] // We revealed only the anonId
+      // In our case, we disclosed index 0 (anonId) and index 2 (creditCategory) during proof generation
+      const disclosedIndexes = [0, 2] // We revealed anonId and creditCategory
 
-      // Extract the disclosed message (anonId) from the original credential
-      // This is a simplification - in a real implementation, this would come from the proof
+      // Extract the disclosed messages
       const disclosedMessages = [
-        new TextEncoder().encode(`anonId:${proofData.anonId}`)
+        new TextEncoder().encode(`anonId:${proofData.anonId}`),
+        new TextEncoder().encode(`creditCategory:${proofData.userCategory}`)
       ]
 
       console.log('BBS Module: Verifying with disclosed anonId:', proofData.anonId.substring(0, 8) + '...')
+      console.log('BBS Module: Verifying with disclosed credit category:', proofData.userCategory)
 
       // Verify the BBS proof
       const bbsValid = await BBS.verifyProof({
@@ -244,25 +265,26 @@ class BBSModule {
 
       // Mock predicate verification - in real implementation this would verify bulletproof
       const predicateValid = proofData.predicateProof.satisfied &&
-                           proofData.predicateProof.minAge === minAge &&
-                           proofData.predicateProof.type === 'age_gte'
+                           proofData.predicateProof.requiredCategory === requiredCategory &&
+                           proofData.predicateProof.type === 'credit_category_gte'
 
       if (!predicateValid) {
-        return { valid: false, reason: 'Age predicate not satisfied' }
+        return { valid: false, reason: 'Credit category predicate not satisfied' }
       }
 
-      console.log('BBS Module: ZK age predicate verification successful')
+      console.log('BBS Module: ZK credit category predicate verification successful')
 
       return {
         valid: true,
         anonId: proofData.anonId,
-        ageRequirementMet: true,
-        // Exact age is NOT revealed - this is the key privacy property
-        exactAgeHidden: true
+        creditCategory: proofData.userCategory,
+        creditRequirementMet: true,
+        // Exact credit score is NOT revealed - this is the key privacy property
+        exactCreditScoreHidden: true
       }
 
     } catch (error) {
-      console.error('BBS Module: ZK age predicate verification failed:', error)
+      console.error('BBS Module: ZK credit category predicate verification failed:', error)
       return { valid: false, reason: error.message }
     }
   }

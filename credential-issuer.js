@@ -41,6 +41,15 @@ class CredentialIssuer {
     }
   }
 
+  // Determine credit score category
+  getCreditScoreCategory(creditScore) {
+    if (creditScore >= 0 && creditScore <= 300) return "poor"
+    if (creditScore >= 301 && creditScore <= 600) return "fair"
+    if (creditScore >= 601 && creditScore <= 800) return "good"
+    if (creditScore >= 801) return "excellent"
+    throw new Error("Invalid credit score")
+  }
+
   // Issue a credential for a user with their verified attributes
   async issueCredential(userInfo) {
     console.log(`${this.issuerName}: Issuing credential for user...`)
@@ -49,10 +58,13 @@ class CredentialIssuer {
       throw new Error('Issuer not initialized. Call init() first.')
     }
 
-    const { name, surname, age, birthdate, location, ssn } = userInfo
+    const { name, surname, creditScore, birthdate, location, ssn } = userInfo
 
     // Generate anonymous ID (public key) from real identity hash (private key)
     const identityKeys = this.generateAnonymousId(name, surname, birthdate, location, ssn)
+
+    // Determine credit score category
+    const creditScoreCategory = this.getCreditScoreCategory(creditScore)
 
     // Create additional hashes for privacy
     const nameHash = crypto.hash(Buffer.from(`${name}:${surname}`)).toString('hex')
@@ -63,7 +75,8 @@ class CredentialIssuer {
     // Encode all attributes as messages for BBS signing
     const attributes = [
       new TextEncoder().encode(`anonId:${identityKeys.anonId}`),
-      new TextEncoder().encode(`age:${age}`),
+      new TextEncoder().encode(`creditScore:${creditScore}`),
+      new TextEncoder().encode(`creditCategory:${creditScoreCategory}`),
       new TextEncoder().encode(`nameHash:${nameHash}`),
       new TextEncoder().encode(`locationHash:${locationHash}`),
       new TextEncoder().encode(`ssnHash:${ssnHash}`),
@@ -84,7 +97,7 @@ class CredentialIssuer {
     const credential = {
       signature: signature,
       attributes: attributes,
-      attributeLabels: ['anonId', 'age', 'nameHash', 'locationHash', 'ssnHash', 'nonce'],
+      attributeLabels: ['anonId', 'creditScore', 'creditCategory', 'nameHash', 'locationHash', 'ssnHash', 'nonce'],
       issuerPublicKey: this.keyPair.publicKey,
       issuerName: this.issuerName,
       issuedAt: Date.now(),
