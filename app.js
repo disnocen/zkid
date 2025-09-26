@@ -115,14 +115,14 @@ proveCreditBtn.addEventListener('click', async () => {
     proveCreditBtn.disabled = true
     proveCreditBtn.textContent = 'Generating ZK Proof...'
 
-    console.log('Sara creating zero-knowledge proof that credit category ≥ fair...')
+    console.log('Sara creating zero-knowledge proof that credit meets fair threshold...')
 
     // Sara creates ZK proof using her credential
-    creditProof = await bbsModule.proveCreditCategoryPredicate(saraCredential, 'fair')
+    creditProof = await bbsModule.proveCreditThresholdPredicate(saraCredential, 'fair')
 
     console.log('Zero-knowledge credit proof generated successfully')
-    console.log('Proof reveals: Anonymous ID and credit category only')
-    console.log('Proof hides: Exact credit score, name, location, SSN')
+    console.log('Proof reveals: Anonymous ID only')
+    console.log('Proof hides: Exact credit score, credit category, name, location, SSN')
 
     // Update UI
     document.getElementById('creditProofGenerated').style.display = 'block'
@@ -154,15 +154,15 @@ applyBtn.addEventListener('click', async () => {
     console.log('Car Lender verifying zero-knowledge credit proof...')
 
     // Car Lender verifies the proof using the issuer's public key
-    const verification = await bbsModule.verifyCreditCategoryPredicate(creditProof, 'fair')
+    const verification = await bbsModule.verifyCreditThresholdPredicate(creditProof, 'fair')
 
     if (!verification.valid) {
       throw new Error('Credit verification failed: ' + verification.reason)
     }
 
     console.log('Car Lender verification successful!')
-    console.log('Car Lender knows: Credit Category ≥ Fair ✓, Anonymous ID:', verification.anonId.substring(0, 8) + '...')
-    console.log('Car Lender does NOT know: Exact credit score, real name, location, SSN')
+    console.log('Car Lender knows: Credit ≥ Fair threshold ✓, Anonymous ID:', verification.anonId.substring(0, 8) + '...')
+    console.log('Car Lender does NOT know: Exact credit score, exact category, real name, location, SSN')
 
     applyBtn.textContent = 'Processing Application...'
 
@@ -197,9 +197,10 @@ applyBtn.addEventListener('click', async () => {
       applyBtn.textContent = '✓ Loan Approved'
 
       console.log('=== PRIVACY ACHIEVED ===')
-      console.log('✓ Sara proved her credit is fair or better')
+      console.log('✓ Sara proved her credit meets fair+ threshold')
       console.log('✓ Car Lender verified the requirement')
       console.log('❌ Sara\'s exact credit score was NEVER revealed!')
+      console.log('❌ Sara\'s exact credit category was NEVER revealed!')
       console.log('❌ Sara\'s real name, location, SSN remain private!')
 
     }, 2000)

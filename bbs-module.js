@@ -154,96 +154,91 @@ class BBSModule {
     throw new Error("Invalid credit score")
   }
 
-  // Mock ZK Credit Score Category Predicate - proves credit category without revealing exact score
-  async proveCreditCategoryPredicate(credential, requiredCategory) {
-    console.log('BBS Module: Creating mock ZK credit category predicate proof...')
+  // Mock ZK Credit Threshold Predicate - proves credit meets threshold without revealing exact category
+  async proveCreditThresholdPredicate(credential, requiredThreshold) {
+    console.log('BBS Module: Creating mock ZK credit threshold predicate proof...')
 
     try {
-      // Extract credit score and category from credential attributes
-      let userCreditScore = null
+      // Extract credit category from credential attributes (never reveal this!)
       let userCreditCategory = null
 
       for (const attr of credential.attributes) {
         const attrStr = new TextDecoder().decode(attr)
-        if (attrStr.startsWith('creditScore:')) {
-          userCreditScore = parseInt(attrStr.split(':')[1])
-        }
         if (attrStr.startsWith('creditCategory:')) {
           userCreditCategory = attrStr.split(':')[1]
+          break
         }
       }
 
-      if (userCreditScore === null || userCreditCategory === null) {
-        throw new Error('Credit score or category attribute not found in credential')
+      if (userCreditCategory === null) {
+        throw new Error('Credit category attribute not found in credential')
       }
 
       // Define category hierarchy for comparison
       const categoryOrder = { "poor": 1, "fair": 2, "good": 3, "excellent": 4 }
-      const requiredLevel = categoryOrder[requiredCategory]
+      const requiredLevel = categoryOrder[requiredThreshold]
       const userLevel = categoryOrder[userCreditCategory]
 
       if (userLevel < requiredLevel) {
-        throw new Error(`Credit category ${userCreditCategory} does not meet minimum requirement of ${requiredCategory}`)
+        throw new Error(`User credit does not meet minimum threshold of ${requiredThreshold}`)
       }
 
-      console.log(`BBS Module: User credit category ${userCreditCategory} meets requirement of ${requiredCategory}+`)
+      console.log(`BBS Module: User credit meets threshold ${requiredThreshold}+ (exact category hidden)`)
 
-      // Create selective disclosure proof that reveals only anonId (index 0) and creditCategory (index 2)
-      // CreditScore (index 1) is NOT revealed but the proof validates the credential
+      // Create selective disclosure proof that reveals ONLY anonId (index 0)
+      // creditAccumulator (index 1) and creditCategory (index 2) are NOT revealed
       const zkProof = await BBS.deriveProof({
         publicKey: credential.issuerPublicKey,
         signature: credential.signature,
         header: new Uint8Array(0),
         messages: credential.attributes,
         presentationHeader: new Uint8Array(0),
-        disclosedMessageIndexes: [0, 2], // Reveal anonId and creditCategory only
+        disclosedMessageIndexes: [0], // Reveal ONLY anonId
         ciphersuite: BBS.CIPHERSUITES.BLS12381_SHAKE256
       })
 
       // Mock predicate result - in real implementation this would be a bulletproof
       const predicateProof = {
-        type: 'credit_category_gte',
-        requiredCategory: requiredCategory,
-        userCategory: userCreditCategory,
+        type: 'credit_threshold_gte',
+        requiredThreshold: requiredThreshold,
         satisfied: true,
         // This would be a real zero-knowledge proof in production
-        mockProof: `credit_cat_${requiredCategory}_proof_${Math.random().toString(36).substr(2, 8)}`
+        mockProof: `credit_threshold_${requiredThreshold}_proof_${Math.random().toString(36).substr(2, 8)}`
       }
 
-      console.log('BBS Module: Mock ZK credit category predicate proof created successfully')
+      console.log('BBS Module: Mock ZK credit threshold predicate proof created successfully')
 
       return {
         bbsProof: zkProof,
         predicateProof: predicateProof,
         issuerPublicKey: credential.issuerPublicKey,
         anonId: credential.anonId,
-        userCategory: userCreditCategory,
         meetsRequirement: true
+        // NOTE: userCategory is NOT included - this is the key privacy property!
       }
 
     } catch (error) {
-      console.error('BBS Module: Error creating ZK credit category predicate proof:', error)
+      console.error('BBS Module: Error creating ZK credit threshold predicate proof:', error)
       throw error
     }
   }
 
-  // Verify a ZK credit category predicate proof without learning the exact credit score
-  async verifyCreditCategoryPredicate(proofData, requiredCategory) {
-    console.log('BBS Module: Verifying mock ZK credit category predicate proof...')
+  // Verify a ZK credit threshold predicate proof without learning the exact category or score
+  async verifyCreditThresholdPredicate(proofData, requiredThreshold) {
+    console.log('BBS Module: Verifying mock ZK credit threshold predicate proof...')
 
     try {
       // For BBS proof verification, we need to know which messages were disclosed
-      // In our case, we disclosed index 0 (anonId) and index 2 (creditCategory) during proof generation
-      const disclosedIndexes = [0, 2] // We revealed anonId and creditCategory
+      // In our case, we disclosed ONLY index 0 (anonId) during proof generation
+      const disclosedIndexes = [0] // We revealed ONLY anonId
 
-      // Extract the disclosed messages
+      // Extract the disclosed messages - only anonId
       const disclosedMessages = [
-        new TextEncoder().encode(`anonId:${proofData.anonId}`),
-        new TextEncoder().encode(`creditCategory:${proofData.userCategory}`)
+        new TextEncoder().encode(`anonId:${proofData.anonId}`)
       ]
 
       console.log('BBS Module: Verifying with disclosed anonId:', proofData.anonId.substring(0, 8) + '...')
-      console.log('BBS Module: Verifying with disclosed credit category:', proofData.userCategory)
+      console.log('BBS Module: Credit category and accumulator remain hidden')
 
       // Verify the BBS proof
       const bbsValid = await BBS.verifyProof({
@@ -265,26 +260,27 @@ class BBSModule {
 
       // Mock predicate verification - in real implementation this would verify bulletproof
       const predicateValid = proofData.predicateProof.satisfied &&
-                           proofData.predicateProof.requiredCategory === requiredCategory &&
-                           proofData.predicateProof.type === 'credit_category_gte'
+                           proofData.predicateProof.requiredThreshold === requiredThreshold &&
+                           proofData.predicateProof.type === 'credit_threshold_gte'
 
       if (!predicateValid) {
-        return { valid: false, reason: 'Credit category predicate not satisfied' }
+        return { valid: false, reason: 'Credit threshold predicate not satisfied' }
       }
 
-      console.log('BBS Module: ZK credit category predicate verification successful')
+      console.log('BBS Module: ZK credit threshold predicate verification successful')
 
       return {
         valid: true,
         anonId: proofData.anonId,
-        creditCategory: proofData.userCategory,
         creditRequirementMet: true,
-        // Exact credit score is NOT revealed - this is the key privacy property
-        exactCreditScoreHidden: true
+        thresholdMet: requiredThreshold,
+        // Key privacy properties: exact score AND category are both hidden
+        exactCreditScoreHidden: true,
+        exactCreditCategoryHidden: true
       }
 
     } catch (error) {
-      console.error('BBS Module: ZK credit category predicate verification failed:', error)
+      console.error('BBS Module: ZK credit threshold predicate verification failed:', error)
       return { valid: false, reason: error.message }
     }
   }

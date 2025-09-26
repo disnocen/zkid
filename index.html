@@ -166,13 +166,13 @@
 
   <div id="step2" class="step-section" style="display: none;">
     <h2>Step 2: Credit Verification 🔐</h2>
-    <p><strong>Sara</strong> proves her credit is fair+ without revealing her exact score</p>
+    <p><strong>Sara</strong> proves her credit meets threshold without revealing score or category</p>
     <button id="proveCreditBtn" class="btn">🔐 Prove Credit ≥Fair (Zero-Knowledge)</button>
     <div id="creditProofGenerated" style="display: none; margin-top: 10px;">
       <p style="color: #4CAF50;"><strong>✓ Zero-knowledge proof generated</strong></p>
-      <p>✓ Proves: Credit Category ≥ Fair</p>
-      <p>✓ Reveals: Anonymous ID and credit category only</p>
-      <p>❌ Hidden: Exact credit score (720), name, location, SSN</p>
+      <p>✓ Proves: Credit meets Fair+ threshold</p>
+      <p>✓ Reveals: Anonymous ID only</p>
+      <p>❌ Hidden: Exact credit score (720), credit category (good), name, location, SSN</p>
     </div>
   </div>
 
@@ -190,7 +190,7 @@
     <div id="approvalStatus" style="display: none; margin-top: 10px;">
       <p style="color: #4CAF50;"><strong>✓ Credit requirement verified by Car Lender</strong></p>
       <p style="color: #4CAF50;"><strong>✓ Loan application approved</strong></p>
-      <p style="opacity: 0.7;">Car Lender knows: Credit ≥Fair ✓, Anonymous ID only</p>
+      <p style="opacity: 0.7;">Car Lender knows: Credit meets Fair+ threshold ✓, Anonymous ID only</p>
     </div>
   </div>
 
@@ -201,7 +201,7 @@
         <h3>🚗 Car Loan Approval 2024</h3>
         <p><strong>Loan ID:</strong> <span id="loanId"></span></p>
         <p><strong>Amount:</strong> $35,000</p>
-        <p><strong>Credit Verified:</strong> Fair+ ✓ (exact score hidden)</p>
+        <p><strong>Credit Verified:</strong> Fair+ threshold ✓ (score & category hidden)</p>
         <p><strong>Anonymous ID:</strong> <span id="loanAnonId"></span></p>
         <div id="qrCode" style="margin-top: 15px;">
           <p><strong>QR Code for dealership:</strong></p>
@@ -212,7 +212,7 @@
           </div>
         </div>
         <p style="margin-top: 10px; font-size: 14px; opacity: 0.7;">
-          🔒 <strong>Privacy Achieved:</strong> Your exact credit score (720) was never revealed to the car lender!
+          🔒 <strong>Privacy Achieved:</strong> Your exact credit score (720) AND category (good) were never revealed to the car lender!
         </p>
       </div>
     </div>

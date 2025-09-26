@@ -66,6 +66,9 @@ class CredentialIssuer {
     // Determine credit score category
     const creditScoreCategory = this.getCreditScoreCategory(creditScore)
 
+    // Create mock accumulator reference instead of storing exact score
+    const accumulatorRef = crypto.hash(Buffer.from(`credit_accumulator_${creditScore}_${identityKeys.anonId}`)).toString('hex').substring(0, 16)
+
     // Create additional hashes for privacy
     const nameHash = crypto.hash(Buffer.from(`${name}:${surname}`)).toString('hex')
     const locationHash = crypto.hash(Buffer.from(location)).toString('hex')
@@ -73,10 +76,11 @@ class CredentialIssuer {
     const randomNonce = crypto.randomBytes(16).toString('hex')
 
     // Encode all attributes as messages for BBS signing
+    // Note: We store the category for ZK proof generation but never reveal it
     const attributes = [
       new TextEncoder().encode(`anonId:${identityKeys.anonId}`),
-      new TextEncoder().encode(`creditScore:${creditScore}`),
-      new TextEncoder().encode(`creditCategory:${creditScoreCategory}`),
+      new TextEncoder().encode(`creditAccumulator:${accumulatorRef}`),
+      new TextEncoder().encode(`creditCategory:${creditScoreCategory}`), // Hidden, used only for ZK proofs
       new TextEncoder().encode(`nameHash:${nameHash}`),
       new TextEncoder().encode(`locationHash:${locationHash}`),
       new TextEncoder().encode(`ssnHash:${ssnHash}`),
@@ -97,7 +101,7 @@ class CredentialIssuer {
     const credential = {
       signature: signature,
       attributes: attributes,
-      attributeLabels: ['anonId', 'creditScore', 'creditCategory', 'nameHash', 'locationHash', 'ssnHash', 'nonce'],
+      attributeLabels: ['anonId', 'creditAccumulator', 'creditCategory', 'nameHash', 'locationHash', 'ssnHash', 'nonce'],
       issuerPublicKey: this.keyPair.publicKey,
       issuerName: this.issuerName,
       issuedAt: Date.now(),
